@@ -169,11 +169,11 @@ window.dispatchEvent(new Event('firebase-ready'));
     outline:none;
     color:#f0ede6;
     font-family:'DM Mono',monospace;
-    font-size:14px;
+    font-size:11px;
     font-weight:500;
     padding:0;
     cursor:pointer;
-    width:90px;
+    width:80px;
     -webkit-appearance:none;
     appearance:none;
     letter-spacing:0.03em;
@@ -2946,8 +2946,8 @@ function openItemModal(dayId, itemId){
       <label>附件（照片、截圖、Email、PDF 等）</label>
       <div class="attach-hint">檔案上傳至雲端，所有裝置皆可查看（需網路）</div>
       <div class="attach-list" id="attachList"></div>
-      <button type="button" class="attach-add-btn" id="attachAddBtn">＋</button>
-      <input type="file" id="f-attach" multiple style="display:none">
+      <label class="attach-add-btn" id="attachAddBtn" for="f-attach">＋</label>
+      <input type="file" id="f-attach" multiple style="position:absolute;opacity:0;width:0;height:0;pointer-events:none;">
     </div>
     <div class="modal-actions">
       <button class="btn-secondary" id="cancelBtn">取消</button>
@@ -2991,9 +2991,6 @@ function openItemModal(dayId, itemId){
   }
   renderAttachList();
 
-  document.getElementById('attachAddBtn').addEventListener('click', ()=>{
-    document.getElementById('f-attach').click();
-  });
   document.getElementById('f-attach').addEventListener('change', (e)=>{
     const files = Array.from(e.target.files || []);
     files.forEach(file=>{
@@ -3164,8 +3161,8 @@ function openExpenseModal(expenseId){
       <label>附件（收據、截圖等）</label>
       <div class="attach-hint">檔案上傳至雲端，所有裝置皆可查看（需網路）</div>
       <div class="attach-list" id="expAttachList"></div>
-      <button type="button" class="attach-add-btn" id="expAttachAddBtn">＋</button>
-      <input type="file" id="f-exp-attach" multiple accept="image/*,application/pdf" style="display:none">
+      <label class="attach-add-btn" id="expAttachAddBtn" for="f-exp-attach">＋</label>
+      <input type="file" id="f-exp-attach" multiple accept="image/*,application/pdf" style="position:absolute;opacity:0;width:0;height:0;pointer-events:none;">
     </div>
     <div class="modal-actions">
       <button class="btn-secondary" id="cancelBtn">取消</button>
@@ -3208,9 +3205,6 @@ function openExpenseModal(expenseId){
   }
   renderExpAttachList();
 
-  document.getElementById('expAttachAddBtn').addEventListener('click', ()=>{
-    document.getElementById('f-exp-attach').click();
-  });
   document.getElementById('f-exp-attach').addEventListener('change', (e)=>{
     Array.from(e.target.files||[]).forEach(file=>{
       staged.push({id:uid(), name:file.name, type:file.type, size:file.size, file});
