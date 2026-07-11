@@ -576,7 +576,16 @@ window.dispatchEvent(new Event('firebase-ready'));
     color:var(--ink-faint);
     margin-top:3px;
     letter-spacing:0.02em;
+    display:inline-block;
+    text-decoration:none;
   }
+  a.item-loc{
+    color:var(--teal);
+    text-decoration:underline;
+    text-underline-offset:2px;
+    text-decoration-color:rgba(37,99,235,0.3);
+  }
+  a.item-loc:active{ opacity:0.65; }
   .item-note{
     font-size:11.5px;
     color:var(--ink-faint);
@@ -605,26 +614,7 @@ window.dispatchEvent(new Event('firebase-ready'));
     gap:6px;
     margin-left:4px;
   }
-  /* 路線導航按鈕 — 與行程底色明確區別，用苔綠填色 */
-  .nav-link{
-    font-family:'DM Mono',monospace;
-    font-size:10.5px;
-    color:#f0ede6;
-    text-decoration:none;
-    border:none;
-    border-radius:2px;
-    padding:4px 10px;
-    white-space:nowrap;
-    background:var(--accent);          /* 苔綠填色，明顯區別於米白底 */
-    display:inline-flex;
-    align-items:center;
-    gap:3px;
-    letter-spacing:0.06em;
-    opacity:0.88;
-    transition:opacity 0.15s;
-  }
-  .nav-link::before{ content:"↗ "; font-size:9px; }
-  .nav-link:active{ opacity:0.65; }
+
   .row-mini-actions{display:flex; gap:2px;}
 
   .add-item-btn, .add-day-btn, .add-expense-btn{
@@ -2127,15 +2117,19 @@ function renderDays(){
       /* 右側行程卡片 */
       const row = document.createElement('div');
       row.className = 'item-row';
+      const locHref = navHref(item);
       row.innerHTML = `
         <div class="item-body">
           <div class="item-title">${escapeHtml(item.title||'（未命名行程）')}</div>
-          ${item.location ? `<div class="item-loc">📍 ${escapeHtml(item.location)}</div>` : ''}
+          ${item.location
+            ? locHref
+              ? `<a class="item-loc" href="${locHref}" target="_blank" rel="noopener noreferrer">📍 ${escapeHtml(item.location)}</a>`
+              : `<div class="item-loc">📍 ${escapeHtml(item.location)}</div>`
+            : ''}
           ${item.note ? `<div class="item-note">${escapeHtml(item.note)}</div>` : ''}
           ${item.attachments && item.attachments.length ? `<div class="item-attach-badge" data-edit-item="${day.id}:${item.id}">📎 ${item.attachments.length} 個附件</div>` : ''}
         </div>
         <div class="item-actions">
-          <div class="nav-link-slot"></div>
           <div class="row-mini-actions">
             <button class="icon-btn" data-edit-item="${day.id}:${item.id}" title="編輯">✎</button>
             <button class="icon-btn danger" data-del-item="${day.id}:${item.id}" title="刪除">✕</button>
@@ -2144,21 +2138,6 @@ function renderDays(){
       `;
       wrap.appendChild(row);
       body.appendChild(wrap);
-
-      /* 導航按鈕 */
-      const href = navHref(item);
-      const slot = row.querySelector('.nav-link-slot');
-      if(href && slot){
-        const a = document.createElement('a');
-        a.className = 'nav-link';
-        a.setAttribute('href', href);
-        a.setAttribute('target', '_blank');
-        a.setAttribute('rel', 'noopener noreferrer');
-        a.textContent = 'Map';   /* ↗ 由 CSS ::before 加 */
-        slot.replaceWith(a);
-      } else if(slot){
-        slot.remove();
-      }
 
       /* ── 行程之間插入交通連接器 ── */
       if(!isLast){
