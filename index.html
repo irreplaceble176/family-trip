@@ -1134,7 +1134,7 @@ window.dispatchEvent(new Event('firebase-ready'));
     position:fixed; inset:0;
     background:rgba(28,28,26,0.5);
     display:flex; align-items:flex-end; justify-content:center;
-    z-index:50;
+    z-index:200;   /* 必須高於 tab bar(100) 才不被擋住 */
     backdrop-filter:blur(2px);
   }
   .modal{
@@ -1142,9 +1142,26 @@ window.dispatchEvent(new Event('firebase-ready'));
     width:100%; max-width:640px;
     border-radius:0;
     border-top:1px solid var(--line);
-    padding:22px 20px 28px 20px;
+    padding:22px 20px 0 20px;   /* 底部 padding 移到 modal-actions */
     max-height:88vh;
     overflow-y:auto;
+    display:flex;
+    flex-direction:column;
+    /* iOS safe area */
+    padding-bottom:env(safe-area-inset-bottom, 0px);
+  }
+  /* 確定/取消 固定在 modal 底部，不隨內容捲走 */
+  .modal-scroll-body{
+    flex:1;
+    overflow-y:auto;
+    padding-bottom:8px;
+  }
+  .modal-actions{
+    display:flex;
+    gap:10px;
+    padding:12px 0 20px 0;
+    background:var(--paper);
+    flex-shrink:0;
   }
   .modal h3{
     font-family:'Noto Serif JP',serif;
@@ -1251,7 +1268,7 @@ window.dispatchEvent(new Event('firebase-ready'));
     cursor:pointer;
   }
   .attach-hint{font-size:11px; color:var(--ink-faint); margin:-4px 0 10px 0;}
-  .modal-actions{display:flex; gap:10px; margin-top:20px;}
+  /* modal-actions defined above in modal block */
   .btn-primary{
     flex:1;
     background:var(--accent);
@@ -2291,15 +2308,15 @@ function openTransitModal(dayId, fromId, toId){
       <label>預估時間</label>
       <div style="display:flex;gap:12px;align-items:flex-end;">
         <div style="flex:1;">
-          <div style="font-size:12px;font-weight:600;color:var(--accent);margin-bottom:5px;text-transform:uppercase;letter-spacing:0.4px;">小時</div>
-          <select id="f-tdur-hr" style="width:100%;border:1px solid var(--line);border-radius:8px;padding:10px 12px;font-family:'Inter',sans-serif;font-size:14.5px;background:var(--card);color:var(--ink);">
+          <div style="font-size:10px;font-weight:500;color:var(--ink-faint);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.08em;font-family:'Noto Sans JP',sans-serif;">小時</div>
+          <select id="f-tdur-hr" style="width:100%;border:none;border-bottom:1px solid var(--line);padding:8px 4px;font-family:'DM Mono',monospace;font-size:14px;background:transparent;color:var(--ink);outline:none;">
             <option value="">--</option>
             ${Array.from({length:12},(_,i)=>i+1).map(v=>`<option value="${v}" ${transit.durHr==v?'selected':''}>${v}</option>`).join('')}
           </select>
         </div>
         <div style="flex:1;">
-          <div style="font-size:12px;font-weight:600;color:var(--accent);margin-bottom:5px;text-transform:uppercase;letter-spacing:0.4px;">分鐘</div>
-          <select id="f-tdur-min" style="width:100%;border:1px solid var(--line);border-radius:8px;padding:10px 12px;font-family:'Inter',sans-serif;font-size:14.5px;background:var(--card);color:var(--ink);">
+          <div style="font-size:10px;font-weight:500;color:var(--ink-faint);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.08em;font-family:'Noto Sans JP',sans-serif;">分鐘</div>
+          <select id="f-tdur-min" style="width:100%;border:none;border-bottom:1px solid var(--line);padding:8px 4px;font-family:'DM Mono',monospace;font-size:14px;background:transparent;color:var(--ink);outline:none;">
             <option value="">--</option>
             ${Array.from({length:59},(_,i)=>i+1).map(v=>`<option value="${v}" ${transit.durMin==v?'selected':''}>${v}</option>`).join('')}
           </select>
@@ -2888,7 +2905,20 @@ function hideSpendTooltip(){
 /* ---------------- Modals ---------------- */
 function openModal(html){
   const root = document.getElementById('modalRoot');
-  root.innerHTML = `<div class="overlay" id="overlayEl"><div class="modal">${html}</div></div>`;
+  // 先渲染到暫存 div，再把 modal-actions 抽出固定底部
+  const tmp = document.createElement('div');
+  tmp.innerHTML = html;
+  const actions = tmp.querySelector('.modal-actions');
+  if(actions) actions.remove();
+  const scrollContent = tmp.innerHTML;
+  const actionsHTML = actions ? actions.outerHTML : '';
+  root.innerHTML = `
+    <div class="overlay" id="overlayEl">
+      <div class="modal">
+        <div class="modal-scroll-body">${scrollContent}</div>
+        ${actionsHTML}
+      </div>
+    </div>`;
   document.getElementById('overlayEl').addEventListener('click', (e)=>{
     if(e.target.id === 'overlayEl') closeModal();
   });
