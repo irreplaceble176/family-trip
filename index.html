@@ -20,9 +20,6 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
 import { getFirestore, doc, setDoc, onSnapshot, serverTimestamp }
   from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
-import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject }
-  from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js';
-
 const firebaseConfig = {
   apiKey: "AIzaSyCkq69Css9DEJsUhNCmw8rwXY78y_GCsJs",
   authDomain: "trip-ledger-b273e.firebaseapp.com",
@@ -32,12 +29,11 @@ const firebaseConfig = {
   appId: "1:457740474968:web:3be38abc0c2818ae93482d"
 };
 
-const app     = initializeApp(firebaseConfig);
-const db      = getFirestore(app);
-const storage = getStorage(app);
+const app = initializeApp(firebaseConfig);
+const db  = getFirestore(app);
 
-/* 讓主程式能使用 Firebase */
-window._fb = { db, doc, setDoc, onSnapshot, serverTimestamp, storage, ref, uploadBytes, getDownloadURL, deleteObject };
+/* 讓主程式能使用 Firebase（只剩 Firestore，Storage 改用 Cloudinary） */
+window._fb = { db, doc, setDoc, onSnapshot, serverTimestamp };
 window.dispatchEvent(new Event('firebase-ready'));
 </script>
 <style>
@@ -1259,15 +1255,20 @@ window.dispatchEvent(new Event('firebase-ready'));
     justify-content:center;
   }
   .attach-add-btn{
+    display:flex;
+    align-items:center;
+    justify-content:center;
     width:80px; height:80px;
     border-radius:2px;
-    border:1px dashed var(--line-strong);
+    border:1.5px dashed var(--line-strong);
     background:none;
     color:var(--ink-faint);
-    font-size:20px;
+    font-size:26px;
     cursor:pointer;
+    line-height:1;
+    flex-shrink:0;
   }
-  .attach-hint{font-size:11px; color:var(--ink-faint); margin:-4px 0 10px 0;}
+
   /* modal-actions defined above in modal block */
   .btn-primary{
     flex:1;
@@ -1724,41 +1725,56 @@ window.addEventListener('DOMContentLoaded', ()=>{
 
 function uid(){ return Math.random().toString(36).slice(2,10); }
 
-/* ---------------- Firebase Storage: 附件檔案儲存 ---------------- */
-/* 附件中繼資料(檔名、類型、大小、downloadURL)存在 state，
-   實際檔案上傳到 Firebase Storage，跨裝置皆可看到 */
+/* ---------------- Cloudinary 附件儲存 ---------------- */
 
-async function waitFbReady(timeout=8000){
-  if(window._fb && window._fb.storage) return;
-  return new Promise((resolve, reject)=>{
-    const t = setTimeout(()=> reject(new Error('Firebase 初始化逾時，請重新整理頁面')), timeout);
-    window.addEventListener('firebase-ready', ()=>{ clearTimeout(t); resolve(); }, {once:true});
+const CLOUDINARY_CLOUD = 'nicdw4fb';
+const CLOUDINARY_PRESET = 'trip-ledger';
+const CLOUDINARY_UPLOAD_URL = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/auto/upload`;
+
+/* 圖片壓縮：最大 1024px，轉 JPEG quality 0.82；非圖片原檔回傳 */
+async function compressIfImage(file){
+  if(!file.type.startsWith('image/')) return { blob: file, type: file.type };
+  return new Promise((resolve)=>{
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = ()=>{
+      URL.revokeObjectURL(url);
+      const MAX = 1024;
+      let w = img.width, h = img.height;
+      if(w > MAX || h > MAX){
+        if(w >= h){ h = Math.round(h * MAX / w); w = MAX; }
+        else      { w = Math.round(w * MAX / h); h = MAX; }
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      canvas.toBlob(blob => resolve({ blob, type:'image/jpeg' }), 'image/jpeg', 0.82);
+    };
+    img.onerror = ()=>{ URL.revokeObjectURL(url); resolve({ blob: file, type: file.type }); };
+    img.src = url;
   });
 }
 
-async function attPut(id, name, type, file){
-  await waitFbReady();
-  const { storage, ref, uploadBytes, getDownloadURL } = window._fb;
-  if(!storage) throw new Error('Firebase Storage 尚未初始化');
-  const storageRef = ref(storage, `attachments/${id}`);
-  await uploadBytes(storageRef, file, { contentType: type || 'application/octet-stream' });
-  const url = await getDownloadURL(storageRef);
-  return url;
-}
-
-async function attGet(id){
-  // 直接用 downloadURL，不需要從 Storage 重新取
-  return null;
-}
-
-async function attDelete(id){
-  try{
-    const { storage, ref, deleteObject } = window._fb;
-    const storageRef = ref(storage, `attachments/${id}`);
-    await deleteObject(storageRef);
-  }catch(e){
-    console.warn('刪除附件失敗（可能已不存在）', e);
+/* 上傳至 Cloudinary，回傳 secure_url */
+async function attPut(id, file){
+  const { blob, type } = await compressIfImage(file);
+  const fd = new FormData();
+  fd.append('file', blob, id);
+  fd.append('upload_preset', CLOUDINARY_PRESET);
+  fd.append('public_id', id);
+  const res = await fetch(CLOUDINARY_UPLOAD_URL, { method:'POST', body: fd });
+  if(!res.ok){
+    const err = await res.json().catch(()=>({}));
+    throw new Error(err.error?.message || `上傳失敗 HTTP ${res.status}`);
   }
+  const data = await res.json();
+  return data.secure_url;
+}
+
+/* Cloudinary 刪除需要 API secret，前端無法安全執行，略過
+   （孤立檔案不影響使用，可定期在 Cloudinary Console 手動清理） */
+async function attDelete(id){
+  console.log('attDelete skipped (Cloudinary requires server-side auth):', id);
 }
 function fileIcon(type, name){
   if(type && type.startsWith('image/')) return '🖼️';
@@ -2905,22 +2921,36 @@ function hideSpendTooltip(){
 /* ---------------- Modals ---------------- */
 function openModal(html){
   const root = document.getElementById('modalRoot');
-  // 先渲染到暫存 div，再把 modal-actions 抽出固定底部
+
+  // 用 DOM 操作，避免 innerHTML 序列化破壞 file input
   const tmp = document.createElement('div');
   tmp.innerHTML = html;
   const actions = tmp.querySelector('.modal-actions');
   if(actions) actions.remove();
-  const scrollContent = tmp.innerHTML;
-  const actionsHTML = actions ? actions.outerHTML : '';
-  root.innerHTML = `
-    <div class="overlay" id="overlayEl">
-      <div class="modal">
-        <div class="modal-scroll-body">${scrollContent}</div>
-        ${actionsHTML}
-      </div>
-    </div>`;
-  document.getElementById('overlayEl').addEventListener('click', (e)=>{
-    if(e.target.id === 'overlayEl') closeModal();
+
+  // 建立結構
+  const overlay = document.createElement('div');
+  overlay.className = 'overlay';
+  overlay.id = 'overlayEl';
+
+  const modalEl = document.createElement('div');
+  modalEl.className = 'modal';
+
+  const scrollBody = document.createElement('div');
+  scrollBody.className = 'modal-scroll-body';
+
+  // 把 tmp 的子節點移進 scrollBody（保留 DOM 實例，不序列化）
+  while(tmp.firstChild) scrollBody.appendChild(tmp.firstChild);
+
+  modalEl.appendChild(scrollBody);
+  if(actions) modalEl.appendChild(actions);
+
+  overlay.appendChild(modalEl);
+  root.innerHTML = '';
+  root.appendChild(overlay);
+
+  overlay.addEventListener('click', (e)=>{
+    if(e.target === overlay) closeModal();
   });
 }
 function closeModal(){
@@ -2931,7 +2961,7 @@ function openItemModal(dayId, itemId){
   const day = state.days.find(d=>d.id===dayId);
   const item = itemId ? day.items.find(i=>i.id===itemId) : null;
 
-  // 附件狀態：existing = 已存在 IndexedDB 的附件中繼資料；staged = 這次新選但尚未儲存的檔案
+  // 附件狀態：existing = 已存雲端的附件中繼資料；staged = 這次新選但尚未上傳的檔案
   let existingAtts = item && item.attachments ? item.attachments.slice() : [];
   let staged = []; // {id, name, type, size, file}
   let removedExistingIds = [];
@@ -2944,10 +2974,10 @@ function openItemModal(dayId, itemId){
     <div class="field"><label>備註</label><textarea id="f-note" rows="2" placeholder="門票、注意事項等">${item?escapeHtml(item.note||''):''}</textarea></div>
     <div class="field">
       <label>附件（照片、截圖、Email、PDF 等）</label>
-      <div class="attach-hint">檔案上傳至雲端，所有裝置皆可查看（需網路）</div>
       <div class="attach-list" id="attachList"></div>
-      <label class="attach-add-btn" id="attachAddBtn" for="f-attach">＋</label>
-      <input type="file" id="f-attach" multiple style="position:absolute;opacity:0;width:0;height:0;pointer-events:none;">
+      <label class="attach-add-btn" id="attachAddBtn">＋
+        <input type="file" id="f-attach" multiple style="display:none">
+      </label>
     </div>
     <div class="modal-actions">
       <button class="btn-secondary" id="cancelBtn">取消</button>
@@ -2973,29 +3003,42 @@ function openItemModal(dayId, itemId){
       `;
       listEl.appendChild(card);
     }
-    // 這次新加入、尚未儲存的檔案
+    // 這次新加入、尚未儲存的檔案（顯示本機預覽）
     staged.forEach(s=>{
       const card = document.createElement('div');
       card.className = 'attach-card';
-      card.innerHTML = `
-        <div class="attach-thumb" data-view-staged="${s.id}">${fileIcon(s.type, s.name)}</div>
+      const thumbEl = document.createElement('div');
+      thumbEl.className = 'attach-thumb';
+      thumbEl.dataset.viewStaged = s.id;
+      if(s.type && s.type.startsWith('image/')){
+        const img = document.createElement('img');
+        img.src = s.preview || '';
+        img.alt = '';
+        thumbEl.appendChild(img);
+      } else {
+        thumbEl.textContent = fileIcon(s.type, s.name);
+      }
+      card.appendChild(thumbEl);
+      card.innerHTML += `
         <div class="attach-name">${escapeHtml(s.name)}</div>
         <div class="attach-remove" data-remove-staged="${s.id}">✕</div>
       `;
       listEl.appendChild(card);
-      if(s.type && s.type.startsWith('image/')){
-        const url = URL.createObjectURL(s.file);
-        card.querySelector('.attach-thumb').innerHTML = `<img src="${url}" alt="">`;
-      }
     });
   }
   renderAttachList();
 
-  document.getElementById('f-attach').addEventListener('change', (e)=>{
+  document.getElementById('f-attach').addEventListener('change', async (e)=>{
     const files = Array.from(e.target.files || []);
-    files.forEach(file=>{
-      staged.push({id: uid(), name: file.name, type: file.type, size: file.size, file});
-    });
+    for(const file of files){
+      let preview = '';
+      if(file.type.startsWith('image/')){
+        // 用 compressIfImage 產生本機縮圖預覽
+        const { blob } = await compressIfImage(file);
+        preview = URL.createObjectURL(blob);
+      }
+      staged.push({id: uid(), name: file.name, type: file.type, size: file.size, file, preview});
+    }
     e.target.value = '';
     renderAttachList();
   });
@@ -3042,13 +3085,15 @@ function openItemModal(dayId, itemId){
     saveBtn.textContent = '儲存中…';
 
     try{
-      // 上傳新附件到 Firebase Storage，取得 downloadURL
+      // 壓縮後上傳至 Firebase Storage trips/{roomId}/{id}
       const uploadedAtts = [];
       for(const s of staged){
         saveBtn.textContent = `上傳 ${s.name}…`;
         try{
-          const url = await attPut(s.id, s.name, s.type, s.file);
-          uploadedAtts.push({id:s.id, name:s.name, type:s.type, size:s.size, url});
+          const url = await attPut(s.id, s.file);
+          // 圖片統一存為 jpeg，非圖片維持原類型
+          const finalType = s.file.type.startsWith('image/') ? 'image/jpeg' : s.type;
+          uploadedAtts.push({id:s.id, name:s.name, type:finalType, size:s.size, url});
         }catch(uploadErr){
           console.error('附件上傳失敗:', uploadErr);
           const msg = uploadErr.code === 'storage/unauthorized'
@@ -3085,12 +3130,16 @@ function openItemModal(dayId, itemId){
 }
 
 function openAttachmentViewer(url, name, type, stagedFile){
-  // 若傳入的是 staged file（還沒上傳的），用 createObjectURL
   let viewUrl = url;
   let blobUrl = null;
   if(stagedFile){
-    viewUrl = URL.createObjectURL(stagedFile.file);
-    blobUrl = viewUrl;
+    // 圖片用 compressIfImage 已產生的 preview，非圖片用原檔 objectURL
+    if(stagedFile.preview){
+      viewUrl = stagedFile.preview;
+    } else {
+      viewUrl = URL.createObjectURL(stagedFile.file);
+      blobUrl = viewUrl;
+    }
     name = stagedFile.name;
     type = stagedFile.type;
   }
@@ -3159,10 +3208,10 @@ function openExpenseModal(expenseId){
     </div>
     <div class="field">
       <label>附件（收據、截圖等）</label>
-      <div class="attach-hint">檔案上傳至雲端，所有裝置皆可查看（需網路）</div>
       <div class="attach-list" id="expAttachList"></div>
-      <label class="attach-add-btn" id="expAttachAddBtn" for="f-exp-attach">＋</label>
-      <input type="file" id="f-exp-attach" multiple accept="image/*,application/pdf" style="position:absolute;opacity:0;width:0;height:0;pointer-events:none;">
+      <label class="attach-add-btn" id="expAttachAddBtn">＋
+        <input type="file" id="f-exp-attach" multiple accept="image/*,application/pdf" style="display:none">
+      </label>
     </div>
     <div class="modal-actions">
       <button class="btn-secondary" id="cancelBtn">取消</button>
@@ -3191,24 +3240,37 @@ function openExpenseModal(expenseId){
     staged.forEach(s=>{
       const card = document.createElement('div');
       card.className = 'attach-card';
-      card.innerHTML = `
-        <div class="attach-thumb" data-view-staged="${s.id}">${fileIcon(s.type, s.name)}</div>
+      const thumbEl = document.createElement('div');
+      thumbEl.className = 'attach-thumb';
+      thumbEl.dataset.viewStaged = s.id;
+      if(s.type && s.type.startsWith('image/')){
+        const img = document.createElement('img');
+        img.src = s.preview || '';
+        img.alt = '';
+        thumbEl.appendChild(img);
+      } else {
+        thumbEl.textContent = fileIcon(s.type, s.name);
+      }
+      card.appendChild(thumbEl);
+      card.innerHTML += `
         <div class="attach-name">${escapeHtml(s.name)}</div>
         <div class="attach-remove" data-remove-staged="${s.id}">✕</div>
       `;
       listEl.appendChild(card);
-      if(s.type && s.type.startsWith('image/')){
-        const url = URL.createObjectURL(s.file);
-        card.querySelector('.attach-thumb').innerHTML = `<img src="${url}" alt="">`;
-      }
     });
   }
   renderExpAttachList();
 
-  document.getElementById('f-exp-attach').addEventListener('change', (e)=>{
-    Array.from(e.target.files||[]).forEach(file=>{
-      staged.push({id:uid(), name:file.name, type:file.type, size:file.size, file});
-    });
+  document.getElementById('f-exp-attach').addEventListener('change', async (e)=>{
+    const files = Array.from(e.target.files||[]);
+    for(const file of files){
+      let preview = '';
+      if(file.type.startsWith('image/')){
+        const { blob } = await compressIfImage(file);
+        preview = URL.createObjectURL(blob);
+      }
+      staged.push({id:uid(), name:file.name, type:file.type, size:file.size, file, preview});
+    }
     e.target.value = '';
     renderExpAttachList();
   });
@@ -3250,8 +3312,9 @@ function openExpenseModal(expenseId){
       for(const s of staged){
         saveBtn.textContent = `上傳 ${s.name}…`;
         try{
-          const url = await attPut(s.id, s.name, s.type, s.file);
-          uploadedAtts.push({id:s.id, name:s.name, type:s.type, size:s.size, url});
+          const url = await attPut(s.id, s.file);
+          const finalType = s.file.type.startsWith('image/') ? 'image/jpeg' : s.type;
+          uploadedAtts.push({id:s.id, name:s.name, type:finalType, size:s.size, url});
         }catch(uploadErr){
           console.error('附件上傳失敗:', uploadErr);
           const msg = uploadErr.code === 'storage/unauthorized'
