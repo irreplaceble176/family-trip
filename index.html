@@ -305,15 +305,16 @@ window.dispatchEvent(new Event('firebase-ready'));
     outline:none;
   }
   .trip-name::placeholder{ color:rgba(240,237,230,0.25); }
-  /* ── Tab bar ── */
+  /* ── Tab bar（移到日期選單上方，所以改為下邊框） ── */
   nav.tabs{
     flex-shrink:0;
     display:flex;
     background:var(--card);
-    border-top:1px solid var(--line);
+    border-bottom:1px solid var(--line);
+    border-top:none;
     z-index:100;
-    padding-bottom:env(safe-area-inset-bottom, 0px);
   }
+  main{ position:relative; }
   nav.tabs button{
     flex:1;
     background:transparent;
@@ -377,6 +378,8 @@ window.dispatchEvent(new Event('firebase-ready'));
   #expense-tab,
   #wishlist-tab {
     padding:12px 12px 100px;
+    position:relative;
+    z-index:1;
   }
   #itinerary-tab {
     padding-top:8px;
@@ -398,63 +401,39 @@ window.dispatchEvent(new Event('firebase-ready'));
   }
   .section-title:first-child{margin-top:4px;}
 
-  /* ── Day select dropdown ── */
-  .day-select-wrap{ margin-bottom:12px; }
-  .day-select{
-    width:100%;
-    padding:10px 36px 10px 14px;
-    border-radius:0;
-    border:none;
-    border-bottom:1px solid var(--line);
-    background:var(--paper);
-    color:var(--ink);
-    font-family:'Noto Sans JP',sans-serif;
-    font-size:13.5px;
-    font-weight:500;
-    letter-spacing:0.03em;
-    appearance:none;
-    -webkit-appearance:none;
-    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 14 14'%3E%3Cpath fill='%239c9b94' d='M3 5l4 4 4-4'/%3E%3C/svg%3E");
-    background-repeat:no-repeat;
-    background-position:right 14px center;
-    cursor:pointer;
-  }
-  .day-select:focus{
-    outline:none;
-    border-bottom-color:var(--accent);
-  }
   #dayTabBar{
     display:flex;
     flex-wrap:nowrap;
-    gap:6px;
-    overflow-x:scroll;
+    gap:8px;
+    overflow-x:auto;
     -webkit-overflow-scrolling:touch;
-    padding:6px 2px 12px;
-    margin:0 -16px 4px;
-    padding-left:16px;
-    padding-right:16px;
+    padding:10px 16px 10px;
     scrollbar-width:none;
     box-sizing:border-box;
+    background:var(--paper);
   }
   #dayTabBar::-webkit-scrollbar{ display:none; }
   .day-tab-btn{
     flex-shrink:0;
-    padding:6px 14px;
-    border-radius:2px;
-    border:1px solid var(--line);
+    min-width:48px;
+    padding:7px 12px;
+    border-radius:6px;
+    border:1.5px solid var(--line);
     background:var(--card);
     color:var(--ink-light);
     font-family:'DM Mono',monospace;
-    font-size:11.5px;
-    font-weight:400;
+    font-size:13px;
+    font-weight:500;
     cursor:pointer;
     white-space:nowrap;
     transition:all 0.15s;
+    text-align:center;
   }
   .day-tab-btn.active{
-    background:var(--accent);
-    border-color:var(--accent);
-    color:#f0ede6;
+    background:var(--deep-teal);
+    border-color:var(--deep-teal);
+    color:#fff;
+    font-weight:600;
   }
 
   /* ── Day card ── */
@@ -1578,56 +1557,7 @@ window.dispatchEvent(new Event('firebase-ready'));
     </div>
   </header>
 
-  <!-- 行程頁固定控制列（只剩下拉選單） -->
-  <div class="itinerary-sticky" id="itinerarySticky">
-    <div id="dayTabBar" style="display:none"></div>
-    <div class="day-select-wrap" style="padding:6px 16px 6px;">
-      <select id="daySelectDropdown" class="day-select"></select>
-    </div>
-  </div>
-
-  <!-- 推薦頁固定篩選列 -->
-  <div class="wishlist-sticky hidden" id="wishlistSticky">
-    <div class="wl-filter-bar" id="wlFilterBar"></div>
-  </div>
-
-  <main>
-    <section id="itinerary-tab">
-      <div id="daysContainer"></div>
-      <button class="add-day-btn" id="addDayBtn">＋ 新增一天</button>
-    </section>
-
-    <section id="wishlist-tab" class="hidden">
-      <!-- 地點卡片列表 -->
-      <div id="wlList"></div>
-      <button class="add-expense-btn" id="addWlBtn">＋ 新增地點</button>
-    </section>
-
-    <section id="expense-tab" class="hidden">
-      <div class="section-title">成員</div>
-      <div class="members-row" id="membersChips"></div>
-      <div class="add-chip">
-        <input type="text" id="newMemberInput" placeholder="輸入姓名" maxlength="12">
-        <button id="addMemberBtn">加入</button>
-      </div>
-
-      <div class="section-title">每日明細</div>
-      <button class="add-expense-btn" id="addExpenseBtn">＋ 新增花費</button>
-      <div id="expenseList"></div>
-
-      <div class="section-title">結算總覽</div>
-      <div id="balanceCards"></div>
-
-      <div class="section-title-row">
-        <div class="section-title" style="margin:0;">該還誰多少錢</div>
-        <button class="repay-add-btn" id="addRepayBtn">＋ 記錄還款</button>
-      </div>
-      <div id="repayList"></div>
-      <div id="settleCards"></div>
-    </section>
-  </main>
-
-  <!-- 底部固定 Tab Bar -->
+  <!-- Tab Bar（移到日期選單上方） -->
   <nav class="tabs">
     <button class="tab-btn active" data-tab="itinerary">
       <span class="pika-tab-icon">
@@ -1660,6 +1590,51 @@ window.dispatchEvent(new Event('firebase-ready'));
       </span>推薦
     </button>
   </nav>
+
+  <!-- 行程頁固定控制列（日期方框列） -->
+  <div class="itinerary-sticky" id="itinerarySticky">
+    <div id="dayTabBar"></div>
+  </div>
+
+  <!-- 推薦頁固定篩選列 -->
+  <div class="wishlist-sticky hidden" id="wishlistSticky">
+    <div class="wl-filter-bar" id="wlFilterBar"></div>
+  </div>
+
+  <main>
+    <section id="itinerary-tab">
+      <div id="daysContainer"></div>
+      <button class="add-day-btn" id="addDayBtn">＋ 新增一天</button>
+    </section>
+
+    <section id="wishlist-tab" class="hidden">
+      <div id="wlList"></div>
+      <button class="add-expense-btn" id="addWlBtn">＋ 新增地點</button>
+    </section>
+
+    <section id="expense-tab" class="hidden">
+      <div class="section-title">成員</div>
+      <div class="members-row" id="membersChips"></div>
+      <div class="add-chip">
+        <input type="text" id="newMemberInput" placeholder="輸入姓名" maxlength="12">
+        <button id="addMemberBtn">加入</button>
+      </div>
+
+      <div class="section-title">每日明細</div>
+      <button class="add-expense-btn" id="addExpenseBtn">＋ 新增花費</button>
+      <div id="expenseList"></div>
+
+      <div class="section-title">結算總覽</div>
+      <div id="balanceCards"></div>
+
+      <div class="section-title-row">
+        <div class="section-title" style="margin:0;">該還誰多少錢</div>
+        <button class="repay-add-btn" id="addRepayBtn">＋ 記錄還款</button>
+      </div>
+      <div id="repayList"></div>
+      <div id="settleCards"></div>
+    </section>
+  </main>
 </div>
 
 <div id="modalRoot"></div>
@@ -2047,28 +2022,24 @@ function renderDays(){
     activeDayId = allDays.length ? allDays[0].id : null;
   }
 
-  /* ── Dropdown ── */
-  const sel = document.getElementById('daySelectDropdown');
-  if(sel){
-    sel.innerHTML = '';
-    allDays.forEach((d, idx)=>{
-      const opt = document.createElement('option');
-      opt.value = d.id;
-      const label = d.date ? `Day ${idx+1}　${d.date.slice(5)} ${weekdayLabel(d.date)}` : `Day ${idx+1}`;
-      opt.textContent = label;
-      if(d.id === activeDayId) opt.selected = true;
-      sel.appendChild(opt);
-    });
-    // 重新綁定（先移除舊 listener）
-    const newSel = sel.cloneNode(true);
-    // 設定 selected 後再替換，避免 cloneNode 選中狀態跑掉
-    newSel.value = activeDayId;
-    sel.parentNode.replaceChild(newSel, sel);
-    newSel.addEventListener('change', ()=>{
-      activeDayId = newSel.value;
-      renderDays();
-    });
-  }
+  /* ── 日期方框列 ── */
+  tabBar.innerHTML = '';
+  allDays.forEach((d)=>{
+    const btn = document.createElement('button');
+    btn.className = 'day-tab-btn' + (d.id === activeDayId ? ' active' : '');
+    btn.dataset.dayTabId = d.id;
+    // 只顯示 M/D，例如 8/1
+    if(d.date){
+      const parts = d.date.split('-'); // YYYY-MM-DD
+      btn.textContent = `${parseInt(parts[1])}/${parseInt(parts[2])}`;
+    } else {
+      btn.textContent = '?';
+    }
+    tabBar.appendChild(btn);
+  });
+  // 滾動到選中的按鈕
+  const activeBtn = tabBar.querySelector('.day-tab-btn.active');
+  if(activeBtn) activeBtn.scrollIntoView({ inline:'center', behavior:'smooth' });
 
   /* ── 只渲染選中的那天 ── */
   const day = allDays.find(d=>d.id===activeDayId);
@@ -3690,22 +3661,18 @@ document.addEventListener('DOMContentLoaded', ()=>{
    用 JS 量 tab bar 底部位置，強制 main 高度正確 */
 function fixAppHeight(){
   const app    = document.querySelector('.app');
-  const header = document.querySelector('header');
-  const sticky = document.querySelector('.itinerary-sticky');
-  const tabBar = document.querySelector('nav.tabs');
   const mainEl = document.querySelector('main');
-  if(!app || !tabBar || !mainEl) return;
+  if(!app || !mainEl) return;
 
-  // 用實際 layout 高度，不依賴 dvh
+  // 強制 app 使用 window.innerHeight，iOS PWA 下最可靠
   const availH = window.innerHeight;
   app.style.height = availH + 'px';
   app.style.maxHeight = availH + 'px';
 
-  // 補正 tab 內容底部 padding = tab bar 高度 + 緩衝
-  const tabH = tabBar.getBoundingClientRect().height;
+  // tab bar 已移到上方，main 底部只需固定緩衝
   ['itinerary-tab','expense-tab','wishlist-tab'].forEach(id=>{
     const el = document.getElementById(id);
-    if(el) el.style.paddingBottom = (tabH + 32) + 'px';
+    if(el) el.style.paddingBottom = '40px';
   });
 }
 window.addEventListener('DOMContentLoaded', fixAppHeight);
