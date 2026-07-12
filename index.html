@@ -69,26 +69,21 @@ window.dispatchEvent(new Event('firebase-ready'));
     font-weight:400;
     letter-spacing:0.01em;
   }
-  html {
-    height: -webkit-fill-available;
-  }
-  body {
-    min-height: 100vh;
-    min-height: -webkit-fill-available;
-    min-height: 100dvh;
+  html, body {
+    margin:0; padding:0;
+    width:100%; height:100%;
     overflow:hidden;
-    margin:0;
-    padding:0;
   }
   .app{
+    position:fixed;
+    inset:0;                  /* top/right/bottom/left = 0，完全貼住視窗 */
     max-width:640px;
-    margin:0 auto;
-    height:100dvh;           /* CSS fallback，JS 會用 window.innerHeight 覆蓋 */
+    left:50%;
+    transform:translateX(-50%);
     background:var(--paper);
     display:flex;
     flex-direction:column;
-    overflow:hidden;
-    position:relative;
+    overflow:hidden;          /* 橫向不外溢 */
   }
   /* 確保 itinerary-sticky 不隨 main 收縮 */
   .itinerary-sticky, .wishlist-sticky {
@@ -370,9 +365,7 @@ window.dispatchEvent(new Event('firebase-ready'));
   #itinerary-tab,
   #expense-tab,
   #wishlist-tab {
-    padding:12px 12px 100px;
-    position:relative;
-    z-index:1;
+    padding:12px 12px 48px;
   }
   #itinerary-tab {
     padding-top:8px;
@@ -3671,26 +3664,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
 /* ---------------- iOS PWA 高度修正 ---------------- */
 /* iOS standalone 模式下 100dvh 可能包含 home indicator，
    用 JS 量 tab bar 底部位置，強制 main 高度正確 */
-function fixAppHeight(){
-  const app    = document.querySelector('.app');
-  const mainEl = document.querySelector('main');
-  if(!app || !mainEl) return;
-
-  // 強制 app 使用 window.innerHeight，iOS PWA 下最可靠
-  const availH = window.innerHeight;
-  app.style.height = availH + 'px';
-  app.style.maxHeight = availH + 'px';
-
-  // tab bar 已移到上方，main 底部只需固定緩衝
-  ['itinerary-tab','expense-tab','wishlist-tab'].forEach(id=>{
-    const el = document.getElementById(id);
-    if(el) el.style.paddingBottom = '40px';
-  });
-}
-window.addEventListener('DOMContentLoaded', fixAppHeight);
-window.addEventListener('resize', fixAppHeight);
-// iOS orientationchange 後需要延遲重量
-window.addEventListener('orientationchange', ()=> setTimeout(fixAppHeight, 300));
+/* position:fixed 已處理高度，不再需要 JS 量測 */
 
 /* ---------------- PWA: Service Worker registration ---------------- */
 if('serviceWorker' in navigator){
