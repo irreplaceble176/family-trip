@@ -1611,7 +1611,7 @@ window.dispatchEvent(new Event('firebase-ready'));
   <main>
     <section id="itinerary-tab">
       <div id="daysContainer"></div>
-      <button class="add-day-btn" id="addDayBtn">＋ 新增一天</button>
+      <button class="add-day-btn" id="addDayBtn" style="display:none">＋ 新增一天</button>
     </section>
 
     <section id="wishlist-tab" class="hidden">
@@ -1999,7 +1999,7 @@ function renderDays(){
           <path d="M42,63 Q50,72 58,63" stroke="#8B4513" stroke-width="2.5" fill="none" stroke-linecap="round"/>
         </svg>
         <div>皮卡丘在等你安排行程⚡</div>
-        <div style="font-size:12px;opacity:0.7;">點下方「新增一天」開始規劃吧！</div>
+        <div style="font-size:12px;opacity:0.7;">先設定出發與回程日期，開始規劃吧！</div>
       </div>`;
     return;
   }
