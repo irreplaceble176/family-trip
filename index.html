@@ -147,6 +147,8 @@ window.dispatchEvent(new Event('firebase-ready'));
     flex-direction:column;
     align-items:flex-start;
     gap:2px;
+    position:relative;
+    cursor:pointer;
   }
   .header-date-field label{
     font-size:10px;
@@ -156,26 +158,17 @@ window.dispatchEvent(new Event('firebase-ready'));
     text-transform:uppercase;
     line-height:1;
     font-family:'Noto Sans JP',sans-serif;
+    pointer-events:none;
   }
-  .header-date-field input[type=date]{
-    background:transparent;
-    border:none;
-    outline:none;
+  .header-date-display{
     color:#f0ede6;
     font-family:'DM Mono',monospace;
-    font-size:11px;
-    font-weight:500;
-    padding:0;
-    cursor:pointer;
-    width:80px;
-    -webkit-appearance:none;
-    appearance:none;
+    font-size:13px;
+    font-weight:600;
     letter-spacing:0.03em;
-  }
-  .header-date-field input[type=date]::-webkit-calendar-picker-indicator{
-    filter:invert(1) opacity(0.4);
-    width:11px; height:11px;
-    cursor:pointer;
+    line-height:1.2;
+    min-width:36px;
+    display:block;
   }
   .header-date-sep{
     font-size:13px;
@@ -430,10 +423,10 @@ window.dispatchEvent(new Event('firebase-ready'));
     text-align:center;
   }
   .day-tab-btn.active{
-    background:var(--deep-teal);
-    border-color:var(--deep-teal);
-    color:#fff;
-    font-weight:600;
+    background:#f59e0b;
+    border-color:#d97706;
+    color:#1c1c1a;
+    font-weight:700;
   }
 
   /* ── Day card ── */
@@ -1517,14 +1510,16 @@ window.dispatchEvent(new Event('firebase-ready'));
       </div>
       <!-- 出發/回程 右上角 -->
       <div class="header-date-picker">
-        <div class="header-date-field">
+        <div class="header-date-field" onclick="document.getElementById('tripStart').showPicker&&document.getElementById('tripStart').showPicker(); document.getElementById('tripStart').focus();">
           <label>出發</label>
-          <input type="date" id="tripStart">
+          <span class="header-date-display" id="tripStartDisplay">—</span>
+          <input type="date" id="tripStart" style="position:absolute;opacity:0;width:0;height:0;pointer-events:none;">
         </div>
         <div class="header-date-sep">→</div>
-        <div class="header-date-field">
+        <div class="header-date-field" onclick="document.getElementById('tripEnd').showPicker&&document.getElementById('tripEnd').showPicker(); document.getElementById('tripEnd').focus();">
           <label>回程</label>
-          <input type="date" id="tripEnd">
+          <span class="header-date-display" id="tripEndDisplay">—</span>
+          <input type="date" id="tripEnd" style="position:absolute;opacity:0;width:0;height:0;pointer-events:none;">
         </div>
       </div>
     </div>
@@ -1808,23 +1803,33 @@ function weekdayLabel(dateStr){
   const w = ['週日','週一','週二','週三','週四','週五','週六'];
   return w[d.getDay()];
 }
-/* 同步 header 日期 input 顯示 state.tripStart / tripEnd */
+/* M/D 格式化 helper */
+function fmtMD(dateStr){
+  if(!dateStr) return '—';
+  const p = dateStr.split('-');
+  return `${parseInt(p[1])}/${parseInt(p[2])}`;
+}
+
+/* 同步 header 日期顯示 */
 function updateDateRangeStamp(){
-  const startEl = document.getElementById('tripStart');
-  const endEl   = document.getElementById('tripEnd');
+  const startEl   = document.getElementById('tripStart');
+  const endEl     = document.getElementById('tripEnd');
+  const startDisp = document.getElementById('tripStartDisplay');
+  const endDisp   = document.getElementById('tripEndDisplay');
   if(!startEl || !endEl) return;
-  // 優先用 state 儲存的值；若沒有則從 days 推算（向下相容舊資料）
+
   if(state.tripStart && state.tripEnd){
     startEl.value = state.tripStart;
     endEl.value   = state.tripEnd;
   } else {
     const dates = state.days.map(d=>d.date).filter(Boolean).sort();
-    startEl.value = dates.length ? dates[0]               : '';
-    endEl.value   = dates.length ? dates[dates.length-1]  : '';
-    // 反寫回 state 以便後續正確使用
+    startEl.value = dates.length ? dates[0]              : '';
+    endEl.value   = dates.length ? dates[dates.length-1] : '';
     state.tripStart = startEl.value;
     state.tripEnd   = endEl.value;
   }
+  if(startDisp) startDisp.textContent = fmtMD(startEl.value);
+  if(endDisp)   endDisp.textContent   = fmtMD(endEl.value);
 }
 
 /* 出發日或回程日改變時，直接依新區間重新指派每天日期 */
@@ -1837,30 +1842,28 @@ function onHeaderDateChange(){
   state.tripStart = newStart;
   state.tripEnd   = newEnd;
 
-  const totalDays = Math.round(
-    (new Date(newEnd + 'T00:00:00') - new Date(newStart + 'T00:00:00')) / 86400000
-  ) + 1;
+  /* 建立新區間的每一天日期字串 */
+  const newDateList = [];
+  for(let d = new Date(newStart + 'T00:00:00');
+      localDateStr(d) <= newEnd;
+      d.setDate(d.getDate() + 1)){
+    newDateList.push(localDateStr(new Date(d)));
+  }
 
-  /* 依原本日期排序，逐一指派新日期；天數不夠就截斷，天數多就補新天 */
-  const sorted = [...state.days].sort((a,b)=>(a.date||'').localeCompare(b.date||''));
+  /* 移除不在新區間內的天（已超出範圍） */
+  const newDateSet = new Set(newDateList);
+  state.days = state.days.filter(d => !d.date || newDateSet.has(d.date));
 
-  for(let i = 0; i < totalDays; i++){
-    const d = new Date(newStart + 'T00:00:00');
-    d.setDate(d.getDate() + i);
-    const dateStr = localDateStr(d);
-    if(i < sorted.length){
-      sorted[i].date = dateStr;
-    } else {
-      state.days.push({ id: uid(), date: dateStr, items: [] });
+  /* 新區間內缺少的天，補上空天 */
+  const existingDates = new Set(state.days.map(d => d.date));
+  newDateList.forEach(dk => {
+    if(!existingDates.has(dk)){
+      state.days.push({ id: uid(), date: dk, items: [] });
     }
-  }
-  /* 若原本天數超過新區間，移除多餘的天（從尾巴截） */
-  if(sorted.length > totalDays){
-    const toRemove = new Set(sorted.slice(totalDays).map(d=>d.id));
-    state.days = state.days.filter(d=>!toRemove.has(d.id));
-  }
+  });
 
   saveState();
+  updateDateRangeStamp();
   render();
 }
 
@@ -3403,7 +3406,16 @@ document.getElementById('daysContainer').addEventListener('click', (e)=>{
     if(confirm('確定要刪除這一天的所有行程嗎？')){
       state.days = state.days.filter(d=>d.id!==delDay.dataset.delDay);
       if(activeDayId === delDay.dataset.delDay) activeDayId = null;
-      saveState(); render();
+      // 重新計算 tripStart/End 以符合剩餘天數
+      const remaining = [...state.days].map(d=>d.date).filter(Boolean).sort();
+      if(remaining.length){
+        state.tripStart = remaining[0];
+        state.tripEnd   = remaining[remaining.length-1];
+      } else {
+        state.tripStart = '';
+        state.tripEnd   = '';
+      }
+      saveState(); updateDateRangeStamp(); render();
     }
     return;
   }
