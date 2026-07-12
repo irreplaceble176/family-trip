@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Background circle -->
+  <circle cx="256" cy="256" r="256" fill="#FFD900"/>
+
+  <!-- Ears (pointed) -->
+  <polygon points="100,210 130,60 195,190" fill="#FFD900"/>
+  <polygon points="130,60 195,190 160,185" fill="#1a1a1a"/>
+  <polygon points="315,190 385,60 415,210" fill="#FFD900"/>
+  <polygon points="315,190 385,60 355,185" fill="#1a1a1a"/>
+
+  <!-- Face base -->
+  <ellipse cx="256" cy="290" rx="190" ry="175" fill="#FFD900"/>
+
+  <!-- Eyes -->
+  <ellipse cx="180" cy="240" rx="28" ry="30" fill="#1a1a1a"/>
+  <ellipse cx="332" cy="240" rx="28" ry="30" fill="#1a1a1a"/>
+  <!-- Eye shine -->
+  <ellipse cx="170" cy="230" rx="10" ry="10" fill="white"/>
+  <ellipse cx="322" cy="230" rx="10" ry="10" fill="white"/>
+
+  <!-- Nose -->
+  <ellipse cx="256" cy="288" rx="8" ry="6" fill="#1a1a1a"/>
+
+  <!-- Cheeks (red circles) -->
+  <ellipse cx="148" cy="318" rx="44" ry="38" fill="#E8534A" opacity="0.85"/>
+  <ellipse cx="364" cy="318" rx="44" ry="38" fill="#E8534A" opacity="0.85"/>
+
+  <!-- Mouth -->
+  <path d="M210 315 Q256 360 302 315" fill="none" stroke="#1a1a1a" stroke-width="9" stroke-linecap="round"/>
+  <!-- Mouth detail -->
+  <path d="M228 334 Q256 318 284 334" fill="none" stroke="#1a1a1a" stroke-width="7" stroke-linecap="round"/>
+</svg>

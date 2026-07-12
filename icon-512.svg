@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="80" fill="#FFD900"/>
+  <!-- Lightning bolt -->
+  <polygon points="300,60 180,280 250,280 212,452 380,210 295,210 340,60" fill="#0f3d3e" opacity="0.9"/>
+  <!-- Small book/ledger hint -->
+  <rect x="60" y="360" width="110" height="90" rx="10" fill="#0f3d3e" opacity="0.7"/>
+  <rect x="72" y="375" width="86" height="8" rx="4" fill="#FFD900" opacity="0.8"/>
+  <rect x="72" y="392" width="60" height="8" rx="4" fill="#FFD900" opacity="0.8"/>
+  <rect x="72" y="409" width="74" height="8" rx="4" fill="#FFD900" opacity="0.8"/>
+</svg>
