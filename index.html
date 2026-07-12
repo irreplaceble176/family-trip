@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Family Trip</title>
 <meta name="description" content="旅行行程規劃與多人分帳記帳工具">
 <link rel="manifest" id="manifestLink">
@@ -71,22 +71,24 @@ window.dispatchEvent(new Event('firebase-ready'));
   }
   html {
     margin:0; padding:0;
-    width:100%; height:100%;
-    overflow:hidden;
+    height:100%;
+    overflow-x:hidden;
+    overflow-y:hidden;
   }
   body {
     margin:0; padding:0;
-    width:100%; height:100%;
-    overflow:hidden;
-    /* 防止 iOS 任何子元素的橫向捲動擴散到 body */
-    position:fixed;
-    top:0; left:0; right:0; bottom:0;
+    height:100%;
+    overflow-x:hidden;
+    overflow-y:hidden;
   }
   .app{
-    position:absolute;
-    top:0; left:0; right:0; bottom:0;
+    position:fixed;
+    top:0; bottom:0;
+    left:0; right:0;
+    width:100%;
     max-width:640px;
-    margin:0 auto;            /* 桌面置中 */
+    margin-left:auto;
+    margin-right:auto;
     background:var(--paper);
     display:flex;
     flex-direction:column;
@@ -104,6 +106,9 @@ window.dispatchEvent(new Event('firebase-ready'));
     padding-top:calc(12px + env(safe-area-inset-top, 0px));
     position:relative;
     flex-shrink:0;
+    overflow:hidden;   /* 防止任何子元素橫向溢出 */
+    width:100%;
+    box-sizing:border-box;
   }
   /* 下緣 1px 細線 */
   header::after{
@@ -3709,6 +3714,31 @@ document.addEventListener('DOMContentLoaded', ()=>{
     });
   }
 });
+
+/* ── iOS 橫向捲動鎖定 ──
+   攔截所有 touchmove，若不是在 #dayTabBar 內的橫向滑動
+   就阻止 document 被帶著跑                              */
+(function(){
+  let startX = 0, startY = 0;
+
+  document.addEventListener('touchstart', (e)=>{
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
+  }, { passive: true });
+
+  document.addEventListener('touchmove', (e)=>{
+    const dx = Math.abs(e.touches[0].clientX - startX);
+    const dy = Math.abs(e.touches[0].clientY - startY);
+
+    // 只要是橫向滑動（dx > dy），且不是在 dayTabBar 裡面，就阻止
+    if(dx > dy){
+      const inTabBar = e.target.closest('#dayTabBar');
+      if(!inTabBar){
+        e.preventDefault();
+      }
+    }
+  }, { passive: false });
+})();
 </script>
 </body>
 </html>
