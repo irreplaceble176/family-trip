@@ -373,15 +373,19 @@ window.dispatchEvent(new Event('firebase-ready'));
     -webkit-overflow-scrolling:touch;
     padding:0;
     overscroll-behavior:contain;
-    scroll-padding-bottom:80px;
   }
 
   #itinerary-tab,
   #expense-tab,
   #wishlist-tab {
     padding:12px 12px 32px;
+    /* 補 tab bar 高度 + iOS home indicator */
+    padding-bottom:calc(80px + env(safe-area-inset-bottom, 0px));
   }
-  #itinerary-tab { padding-top:8px; padding-bottom:80px; }
+  #itinerary-tab {
+    padding-top:8px;
+    padding-bottom:calc(100px + env(safe-area-inset-bottom, 0px));
+  }
   .hidden{display:none !important;}
 
   /* ── Section headings ── */
