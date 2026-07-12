@@ -379,7 +379,10 @@ window.dispatchEvent(new Event('firebase-ready'));
   #itinerary-tab,
   #expense-tab,
   #wishlist-tab {
-    padding:12px 12px 32px;
+    padding-top:12px;
+    padding-left:12px;
+    padding-right:12px;
+    padding-bottom:200px; /* 足夠大，確保最後內容可完整捲出 */
   }
   #itinerary-tab {
     padding-top:8px;
@@ -3683,22 +3686,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
 /* ---------------- iOS PWA 高度修正 ---------------- */
 /* iOS standalone 模式下 100dvh 可能包含 home indicator，
    用 JS 量 tab bar 底部位置，強制 main 高度正確 */
-/* 動態設定 section 底部 padding
-   nav.tabs 在 main 上方，所以底部只需讓最後一筆內容
-   能完整捲到可見區域，給一個寬裕的固定值即可 */
-function fixSectionPadding(){
-  const mainEl = document.querySelector('main');
-  if(!mainEl) return;
-  // 用 main 可見高度的 40% 作為底部緩衝，至少 80px
-  const pb = Math.max(mainEl.clientHeight * 0.4, 80) + 'px';
-  ['itinerary-tab','expense-tab','wishlist-tab'].forEach(id=>{
-    const el = document.getElementById(id);
-    if(el) el.style.paddingBottom = pb;
-  });
-}
-document.addEventListener('DOMContentLoaded', fixSectionPadding);
-window.addEventListener('resize', fixSectionPadding);
-window.addEventListener('orientationchange', ()=> setTimeout(fixSectionPadding, 300));
+
 
 /* ---------------- PWA: Service Worker registration ---------------- */
 if('serviceWorker' in navigator){
