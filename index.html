@@ -349,6 +349,7 @@ window.dispatchEvent(new Event('firebase-ready'));
   }
 
   /* ── Sticky 控制列 ── */
+  .itinerary-sticky,
   .wishlist-sticky{
     flex-shrink:0;
     background:var(--paper);
@@ -356,19 +357,9 @@ window.dispatchEvent(new Event('firebase-ready'));
     z-index:50;
     overflow:hidden;
     width:100%;
-    padding:8px 16px;
   }
-  /* 日期方框列：在 main 捲動容器內 sticky 吸頂 */
-  .itinerary-sticky{
-    position:sticky;
-    top:0;
-    z-index:50;
-    background:var(--paper);
-    border-bottom:1px solid var(--line);
-    overflow:hidden;
-    width:100%;
-    padding:0;
-  }
+  .itinerary-sticky{ padding:0; }
+  .wishlist-sticky{ padding:8px 16px; }
   .wl-filter-bar{
     display:flex;
     flex-direction:column;
@@ -1621,12 +1612,13 @@ window.dispatchEvent(new Event('firebase-ready'));
     <div class="wl-filter-bar" id="wlFilterBar"></div>
   </div>
 
+  <!-- 行程頁固定控制列（日期方框列） -->
+  <div class="itinerary-sticky" id="itinerarySticky">
+    <div id="dayTabBar"></div>
+  </div>
+
   <main>
     <section id="itinerary-tab">
-      <!-- 日期方框列：sticky 貼在 main 捲動區頂部 -->
-      <div id="itinerarySticky" class="itinerary-sticky">
-        <div id="dayTabBar"></div>
-      </div>
       <div id="daysContainer"></div>
       <button class="add-day-btn" id="addDayBtn" style="display:none">＋ 新增一天</button>
       <span class="scroll-spacer"></span>
@@ -2088,10 +2080,14 @@ function renderDays(){
     /* ── 標題列 ── */
     const head = document.createElement('div');
     head.className = 'day-head';
+    const fullDateLabel = (()=>{
+      if(!day.date) return '—';
+      const p = day.date.split('-');
+      return `${parseInt(p[1])}月${parseInt(p[2])}日 ${weekdayLabel(day.date)}`;
+    })();
     head.innerHTML = `
       <div style="display:flex;align-items:center;gap:6px;flex:1;min-width:0;">
-        <input type="date" value="${day.date||''}" data-day="${day.id}" class="day-date-input">
-        <span class="day-label">${weekdayLabel(day.date)}</span>
+        <span class="day-date-input" style="font-size:14px;font-weight:600;color:var(--ink);">${fullDateLabel}</span>
       </div>
       <button class="icon-btn danger" data-del-day="${day.id}" title="刪除這一天">✕</button>
     `;
@@ -2161,9 +2157,18 @@ function renderDays(){
     container.appendChild(card);
   }
 
-  /* 切換天數時捲回頂部 */
+  /* 切換天數時捲回頂部，強制觸發 iOS reflow */
   const mainEl = document.querySelector('main');
-  if(mainEl) mainEl.scrollTop = 0;
+  if(mainEl){
+    mainEl.scrollTop = 0;
+    /* iOS 有時不重算 scrollHeight，短暫改變 overflow 強制 reflow */
+    mainEl.style.overflow = 'hidden';
+    requestAnimationFrame(()=>{
+      mainEl.style.overflow = '';
+      mainEl.style.overflowY = 'scroll';
+      mainEl.style.webkitOverflowScrolling = 'touch';
+    });
+  }
 }
 
 /* ── 交通連接器 ── */
